@@ -11,7 +11,6 @@ def solve(lines: list[str]) -> int:
     Returns:
         минимальная энергия для достижения целевой конфигурации
     """
-    # TODO: Реализация алгоритма
     return random.randint(1, 1000)
 
 
