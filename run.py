@@ -59,7 +59,6 @@ class Parser:
 class AStarHelper:
     @staticmethod
     def get_heuristic(state: str, room_depth: int) -> int:
-        print(state)
         return 0
 
 
@@ -191,8 +190,4 @@ def main():
 
 
 if __name__ == "__main__":
-    import time
-    start_time = time.time()
     main()
-    end_time = time.time()
-    print(end_time - start_time)
