@@ -59,7 +59,61 @@ class Parser:
 class AStarHelper:
     @staticmethod
     def get_heuristic(state: str, room_depth: int) -> int:
-        return 0
+        h = 0
+        corridor = state[0:11]
+
+        h += AStarHelper.add_corridor(corridor)
+
+        for room_idx in range(4):
+            target_door = rooms_poses[room_idx]
+            start, room = Parser.deserialize(room_depth, room_idx, state)
+
+            for depth_idx, obj in enumerate(room):
+                if obj == '.':
+                    continue
+
+                needed_room_index = obj_room[obj]
+
+                if room_idx == needed_room_index:
+                    h += AStarHelper.add_self_room(depth_idx, obj, room_depth, room)
+                else:
+                    h += AStarHelper.add_foreign_room(needed_room_index, depth_idx, obj, target_door)
+
+        return h
+
+    @staticmethod
+    def add_foreign_room(cur_room_index: int, depth_idx: int, obj: str, target_door: int):
+        target_room_portal = rooms_poses[cur_room_index]
+        cost_to_exit = (depth_idx + 1) * costs[obj]
+        cost_hall_move = abs(target_door - target_room_portal) * costs[obj]
+        cost_to_enter = 1 * costs[obj]
+        return cost_to_exit + cost_hall_move + cost_to_enter
+
+    @staticmethod
+    def add_self_room(depth_idx: int, obj: str, room_depth: int, room: str):
+        add_h = 0
+        only_family = True
+        for d in range(depth_idx + 1, room_depth):
+            if room[d] != obj:
+                only_family = False
+                break
+        if not only_family:
+            cost_to_exit = (depth_idx + 1) * costs[obj]
+            cost_to_exit_and_open = (2 + 1) * costs[obj]
+            add_h += cost_to_exit + cost_to_exit_and_open
+        return add_h
+
+    @staticmethod
+    def add_corridor(corridor: str) -> int:
+        add_h = 0
+        for hall_idx, obj in enumerate(corridor):
+            if obj != '.':
+                target_room = obj_room[obj]
+                target_door = rooms_poses[target_room]
+                cost_to_door = abs(hall_idx - target_door) * costs[obj]
+                cost_to_enter = 1 * costs[obj]
+                add_h += cost_to_door + cost_to_enter
+        return add_h
 
 
 class Solver:
@@ -168,9 +222,7 @@ def solve(lines: list[str]) -> int:
             continue
 
         for new_state, move_cost in Solver.make_step(current_state, room_depth):
-
             new_g_cost = g + move_cost
-
             if new_g_cost < min_costs.get(new_state, float('inf')):
                 min_costs[new_state] = new_g_cost
                 new_h_cost = AStarHelper.get_heuristic(new_state, room_depth)
