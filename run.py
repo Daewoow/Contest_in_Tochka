@@ -16,8 +16,8 @@ obj_room = {
     'D': 3
 }
 
-rooms_poses = [2, 4, 6, 8]
-between_poses = {0, 1, 3, 5, 7, 9, 10}
+rooms_poses = (2, 4, 6, 8)
+between_poses = (0, 1, 3, 5, 7, 9, 10)
 
 
 class Parser:
@@ -167,8 +167,8 @@ class Solver:
             moves.append((new_state, move_cost))
 
     @staticmethod
-    def make_cost(dest_depth: int, door: int, corrodor_index: int, obj: str):
-        corridor_steps = abs(corrodor_index - door)
+    def make_cost(dest_depth: int, door: int, coridoor_index: int, obj: str):
+        corridor_steps = abs(coridoor_index - door)
         room_steps = dest_depth + 1
         move_cost = (corridor_steps + room_steps) * costs[obj]
         return move_cost
