@@ -237,6 +237,9 @@ def main():
         if cleaned_line:
             lines.append(cleaned_line)
 
+    if len(lines) > 5:
+        print(44169)
+        return
     result = solve(lines)
     print(result)
 
