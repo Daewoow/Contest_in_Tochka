@@ -23,7 +23,7 @@ between_poses = {0, 1, 3, 5, 7, 9, 10}
 class Parser:
     @staticmethod
     def parse(lines: list[str]) -> tuple[str, str, int]:
-        room_depth = 2
+        room_depth = len(lines) - 3
         corridor = lines[1][1:12]
 
         room_indexes = [3, 5, 7, 9]
@@ -236,10 +236,6 @@ def main():
         cleaned_line = line.rstrip('\n')
         if cleaned_line:
             lines.append(cleaned_line)
-
-    if len(lines) > 5:
-        print(44169)
-        return
 
     result = solve(lines)
     print(result)
