@@ -13,7 +13,7 @@ class GraphHelper:
             edges: рёбра
 
         Returns:
-            Доступные шлюзы, все шлюзы, граф
+            Доступные шлюзы (кортежи 'Шлюз-узел'), все шлюзы (set), граф
         """
 
         graph = defaultdict(set)
@@ -41,11 +41,11 @@ class GraphHelper:
 
     @staticmethod
     def bfs(start_node: str, graph: dict[str, set[str]]) -> dict[str, int]:
-        """Выполняет поиск в ширину, возвращая расстояния от start_node
+        """
+        Поиск в ширину
         Args:
-            start_node: начальная точка
-            graph: граф сети
-
+            start_node: стартовая точка
+            graph: граф
         Returns:
             словарь расстояний
         """
@@ -55,7 +55,7 @@ class GraphHelper:
 
         while queue:
             current = queue.popleft()
-            for neighbor in graph[current]:
+            for neighbor in sorted(list(graph[current])):
                 if neighbor not in distances:
                     distances[neighbor] = distances[current] + 1
                     queue.append(neighbor)
@@ -68,16 +68,21 @@ class GraphHelper:
         Закрываем ребро
 
         Args:
-            available_gateways: все шлюзы, к которым есть проход
-            edge_to_close: ребро, которое закрываем
+            available_gateways: доступные шлюзы для вируса
+            edge_to_close: ребро для щакрытия
             graph: граф
             result: результат
         """
         g, n = edge_to_close
         result.append(f"{g}-{n}")
-        graph[g].remove(n)
-        graph[n].remove(g)
-        available_gateways.remove(edge_to_close)
+
+        if n in graph[g]:
+            graph[g].remove(n)
+        if g in graph[n]:
+            graph[n].remove(g)
+
+        if edge_to_close in available_gateways:
+            available_gateways.remove(edge_to_close)
 
 
 class VirusHelper:
@@ -88,12 +93,12 @@ class VirusHelper:
         Считаем следующий шаг вируса: целевой шлюз, следующий узел и расстояние.
 
         Args:
-            start: откуда идём
-            graph: граф сети
-            gateways: шлюзы
+            start: стартовая точка
+            graph: граф
+            gateways: все шлюзы
 
         Returns:
-            Следующий по плану щлюз, следующий по плану узел и расстояние до ближайшего шлюза
+            целевой шлюз, следующий узел и расстояние
         """
 
         distances_from_start = GraphHelper.bfs(start, graph)
@@ -102,7 +107,10 @@ class VirusHelper:
         if min_dist == float('inf'):
             return None, None, float("inf")
 
-        target_gateway = target_gateways[0]
+        target_gateway = sorted(target_gateways)[0]
+
+        if min_dist == 1:
+            return target_gateway, None, min_dist
 
         return (target_gateway, VirusHelper.get_virus_next_node(gateways, graph, min_dist, start, target_gateway),
                 min_dist)
@@ -114,14 +122,11 @@ class VirusHelper:
         Возвращает следующий узел в проходе вируса
 
         Args:
-            gateways: шлюзы
-            graph: граф сети
-            min_dist: расстояние до ближайшего шлюза
+            gateways: все шлюзы
+            graph: граф
+            min_dist: минимальное расстояние до какого-нибудь шлюза
             start: стартовая точка
             target_gateway: целевой шлюз
-
-        Returns:
-            следующий узел
         """
 
         distances_to_target = GraphHelper.bfs(target_gateway, graph)
@@ -144,12 +149,11 @@ class VirusHelper:
         Возвращает ближайший шлюз от вируса
 
         Args:
-            distances_from_start: расстояние от вируса
-            gateways: шлюзы
+            distances_from_start: словарь расстояний от стартовой точки
+            gateways: все шлюзы
 
         Returns:
-            минимальное расстояние до шлюза и список шлюзов с таким расстоянием (если что,
-            потом выберем лексикографически наименьший)
+            Tuple шлюзов с минимальным расстоянием (если что возьмём минимальный)
         """
         min_dist = float('inf')
         target_gateways = []
@@ -165,43 +169,20 @@ class VirusHelper:
         return min_dist, target_gateways
 
     @staticmethod
-    def check_virus_one_step_to_win(gateways: set[str], graph: dict[str, set[str]], next_node: str) \
-            -> list[tuple[str, str]]:
-        """
-        Список шлюзов, к которым вирус будет в одном шаге при каком-то раскладе
-
-        Args:
-            gateways: шлюзы
-            graph: граф
-            next_node: следующий узел
-
-        Returns:
-            опасные шлюзы
-        """
-
-        pre_dangerous_gateways = []
-        if next_node:
-            for neighbor in graph[next_node]:
-                if neighbor in gateways:
-                    pre_dangerous_gateways.append((neighbor, next_node))
-        return pre_dangerous_gateways
-
-    @staticmethod
     def check_virus_win_now(gateways: set[str], graph: dict[str, set[str]], virus_pos: str) -> list[tuple[str, str]]:
         """
         Проверяем, в какие шлюзы вирус может дойти прямо сейчас
 
         Args:
-            gateways: все шлюзы
+            gateways: шлюзы
             graph: граф
             virus_pos: позиция вируса
 
         Returns:
-            Шлюзы, которые под угрозой, так скажем
+            Список шлюзов, куда может дойти вирус сейчас
         """
-
         dangerous_gateways = []
-        for neighbor in graph[virus_pos]:
+        for neighbor in sorted(list(graph[virus_pos])):
             if neighbor in gateways:
                 dangerous_gateways.append((neighbor, virus_pos))
         return dangerous_gateways
@@ -223,43 +204,24 @@ def solve(edges: list[tuple[str, str]]) -> list[str]:
     virus_pos = 'a'
     result = []
 
-    while True:
+    while available_gateways:
         danger_gateways = VirusHelper.check_virus_win_now(gateways, graph, virus_pos)
 
         if danger_gateways:
             edge_to_close = sorted(danger_gateways)[0]
         else:
-            target, next_node, min_dist = VirusHelper.get_virus_move(virus_pos, graph, gateways)
-
-            if target is None:
+            if not available_gateways:
                 break
-
-            pre_dangerous_gateways = VirusHelper.check_virus_one_step_to_win(gateways, graph, next_node)
-
-            if pre_dangerous_gateways:
-                next_virus_gateway = (target, next_node)
-
-                if next_virus_gateway in pre_dangerous_gateways:
-                    edge_to_close = next_virus_gateway
-                else:
-                    edge_to_close = sorted(pre_dangerous_gateways)[0]
-            else:
-                target_gates = [g for g in available_gateways if g[0] == target]
-                edge_to_close = sorted(target_gates)[0]
+            edge_to_close = sorted(list(available_gateways))[0]
 
         GraphHelper.close_edge(available_gateways, edge_to_close, graph, result)
+        next_virus_target, next_virus_node, next_min_dist = VirusHelper.get_virus_move(virus_pos, graph, gateways)
 
-        virus_win_now = VirusHelper.check_virus_win_now(gateways, graph, virus_pos)
-
-        if virus_win_now:
+        if next_virus_target is None:
             break
-        else:
-            new_virus_target, new_virus_pos, new_min_dist = VirusHelper.get_virus_move(virus_pos, graph, gateways)
 
-            if new_virus_pos is None:
-                break
-
-            virus_pos = new_virus_pos
+        if next_virus_node is not None:
+            virus_pos = next_virus_node
 
     return result
 
