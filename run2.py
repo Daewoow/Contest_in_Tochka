@@ -128,11 +128,10 @@ class VirusHelper:
         next_node = None
 
         for neighbor in sorted(list(graph[start])):
-            if neighbor in gateways:
-                continue
-
             dist_to_target = distances_to_target.get(neighbor, float('inf'))
             if dist_to_target == min_dist - 1:
+                if neighbor in gateways and neighbor != target_gateway:
+                    continue
                 next_node = neighbor
                 break
         return next_node
@@ -239,7 +238,7 @@ def solve(edges: list[tuple[str, str]]) -> list[str]:
             if pre_dangerous_gateways:
                 next_virus_gateway = (target, next_node)
 
-                if next_virus_gateway in pre_dangerous_gateways:
+                if next_virus_gateway in available_gateways and next_virus_gateway in pre_dangerous_gateways:
                     edge_to_close = next_virus_gateway
                 else:
                     edge_to_close = sorted(pre_dangerous_gateways)[0]
@@ -251,17 +250,19 @@ def solve(edges: list[tuple[str, str]]) -> list[str]:
 
         GraphHelper.close_edge(available_gateways, edge_to_close, graph, result)
 
-        virus_win_now = VirusHelper.check_virus_win_now(gateways, graph, virus_pos)
+        new_virus_target, new_virus_pos, new_min_dist = VirusHelper.get_virus_move(virus_pos, graph, gateways)
 
-        if virus_win_now:
-            break
-        else:
-            new_virus_target, new_virus_pos, new_min_dist = VirusHelper.get_virus_move(virus_pos, graph, gateways)
-
-            if new_virus_pos is None:
+        if new_virus_pos is None:
+            distances_from_start = GraphHelper.bfs(virus_pos, graph)
+            min_dist_check, _ = VirusHelper.get_virus_nearest_gateway(distances_from_start, gateways)
+            if min_dist_check == float('inf'):
                 break
 
+        else:
             virus_pos = new_virus_pos
+
+        if new_virus_target is None:
+            break
 
     return result
 
