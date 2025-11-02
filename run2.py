@@ -251,21 +251,17 @@ def solve(edges: list[tuple[str, str]]) -> list[str]:
 
         GraphHelper.close_edge(available_gateways, edge_to_close, graph, result)
 
-        virus_move_target = None
-        for neighbor in graph[virus_pos]:
-            if neighbor in gateways:
-                virus_move_target = neighbor
+        virus_win_now = VirusHelper.check_virus_win_now(gateways, graph, virus_pos)
+
+        if virus_win_now:
+            break
+        else:
+            new_virus_target, new_virus_pos, new_min_dist = VirusHelper.get_virus_move(virus_pos, graph, gateways)
+
+            if new_virus_pos is None:
                 break
 
-        if virus_move_target:
-            pass
-
-        new_virus_target, new_virus_pos, new_min_dist = VirusHelper.get_virus_move(virus_pos, graph, gateways)
-
-        if new_virus_pos is None:
-            break
-
-        virus_pos = new_virus_pos
+            virus_pos = new_virus_pos
 
     return result
 
